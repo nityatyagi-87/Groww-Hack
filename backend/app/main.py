@@ -26,8 +26,9 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="SignalList", version="1.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
+    # Cross-origin static frontend (Render/Vercel) + local Vite
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

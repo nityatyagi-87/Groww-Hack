@@ -2,6 +2,22 @@ const USER_KEY = "signallist_user";
 const TOKEN_KEY = "signallist_token";
 const NAME_KEY = "signallist_name";
 
+/** Production: set VITE_API_URL=https://your-api.onrender.com (no trailing slash). Local: leave empty (Vite proxy). */
+const API_BASE = String(import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
+function wsBase(): string {
+  if (API_BASE) {
+    const u = new URL(API_BASE);
+    return `${u.protocol === "https:" ? "wss" : "ws"}://${u.host}`;
+  }
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  return `${proto}://${location.host}`;
+}
+
 export function getUserId(): string {
   return localStorage.getItem(USER_KEY) || "demo";
 }
@@ -41,7 +57,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   };
   const tok = getToken();
   if (tok) headers.Authorization = `Bearer ${tok}`;
-  const res = await fetch(path, { ...init, headers });
+  const res = await fetch(apiUrl(path), { ...init, headers });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -182,9 +198,8 @@ export const login = (email: string, password: string, name?: string) =>
   });
 
 export function liveSocket(onMsg: (data: unknown) => void): WebSocket {
-  const proto = location.protocol === "https:" ? "wss" : "ws";
   const ws = new WebSocket(
-    `${proto}://${location.host}/ws/live?user=${encodeURIComponent(getUserId())}`
+    `${wsBase()}/ws/live?user=${encodeURIComponent(getUserId())}`
   );
   ws.onmessage = (e) => onMsg(JSON.parse(e.data));
   const iv = setInterval(() => {
